@@ -7,6 +7,10 @@
         "data": {
           "host": "Host",
           "port": "Port"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the AKVO Modbus TCP server (project-specific; see 725-<project> document)",
+          "port": "Modbus TCP port (default 502)"
         }
       },
       "presets": {
@@ -22,6 +26,38 @@
           "preset_7": "Configuration #7 name",
           "preset_8": "Configuration #8 name",
           "enable_commands": "Enable preset commands (SAFETY: leave OFF until approved)"
+        }
+      },
+      "register_map": {
+        "title": "Register map overrides (project-specific)",
+        "description": "Leave all fields at their defaults unless your project-specific AKVO map document (725-<project>) specifies different register addresses or bit positions. Incorrect values here will break decoding and safety detection. Verify on hardware before enabling commands.",
+        "data": {
+          "reg_hr_status_1": "HR Status Word 1 address",
+          "reg_hr_status_2": "HR Status Word 2 address",
+          "reg_hr_fault_main": "HR Main-floor fault word address",
+          "reg_hr_fault_baja": "HR Baja fault word address",
+          "reg_hr_fault_topplate": "HR Top-plate fault word address",
+          "reg_hr_outputs": "HR Outputs word address",
+          "reg_hr_pos_main": "HR Main floor position address",
+          "reg_hr_pos_baja": "HR Baja position address",
+          "reg_hr_current_main": "HR Main motor current address",
+          "reg_hr_current_baja": "HR Baja motor current address",
+          "reg_hr_command": "HR Command word address (HR10)",
+          "reg_hr_watchdog": "HR Watchdog mirror address (HR11)",
+          "reg_s1_system_ready": "HR0 system-ready bit",
+          "reg_s1_system_fault": "HR0 system-fault bit",
+          "reg_s1_estop_indoor": "HR0 e-stop indoor bit",
+          "reg_s1_estop_outdoor": "HR0 e-stop outdoor bit",
+          "reg_s1_watchdog_from_akvo": "HR0 AKVO watchdog bit",
+          "reg_s1_bad_modbus_comm": "HR0 bad-Modbus-comm bit",
+          "reg_s1_ready_for_external": "HR0 ready-for-external bit",
+          "reg_s2_floors_moving": "HR1 floors-moving bit",
+          "reg_s2_config_achieved_base": "HR1 config-achieved base bit",
+          "reg_cmd_move_config_base": "HR10 move-config base bit",
+          "reg_wd_external": "HR11 external watchdog bit",
+          "reg_topplate_fault_count": "Number of top-plate fault bits",
+          "reg_min_config": "Minimum configuration number",
+          "reg_max_config": "Maximum configuration number"
         }
       }
     },
@@ -48,6 +84,38 @@
           "preset_8": "Configuration #8 name",
           "enable_commands": "Enable preset commands (SAFETY: leave OFF until approved)"
         }
+      },
+      "register_map": {
+        "title": "Register map overrides (project-specific)",
+        "description": "Adjust register addresses to match your 725-<project> document. Incorrect values break safety detection. Verify on hardware before enabling commands.",
+        "data": {
+          "reg_hr_status_1": "HR Status Word 1 address",
+          "reg_hr_status_2": "HR Status Word 2 address",
+          "reg_hr_fault_main": "HR Main-floor fault word address",
+          "reg_hr_fault_baja": "HR Baja fault word address",
+          "reg_hr_fault_topplate": "HR Top-plate fault word address",
+          "reg_hr_outputs": "HR Outputs word address",
+          "reg_hr_pos_main": "HR Main floor position address",
+          "reg_hr_pos_baja": "HR Baja position address",
+          "reg_hr_current_main": "HR Main motor current address",
+          "reg_hr_current_baja": "HR Baja motor current address",
+          "reg_hr_command": "HR Command word address (HR10)",
+          "reg_hr_watchdog": "HR Watchdog mirror address (HR11)",
+          "reg_s1_system_ready": "HR0 system-ready bit",
+          "reg_s1_system_fault": "HR0 system-fault bit",
+          "reg_s1_estop_indoor": "HR0 e-stop indoor bit",
+          "reg_s1_estop_outdoor": "HR0 e-stop outdoor bit",
+          "reg_s1_watchdog_from_akvo": "HR0 AKVO watchdog bit",
+          "reg_s1_bad_modbus_comm": "HR0 bad-Modbus-comm bit",
+          "reg_s1_ready_for_external": "HR0 ready-for-external bit",
+          "reg_s2_floors_moving": "HR1 floors-moving bit",
+          "reg_s2_config_achieved_base": "HR1 config-achieved base bit",
+          "reg_cmd_move_config_base": "HR10 move-config base bit",
+          "reg_wd_external": "HR11 external watchdog bit",
+          "reg_topplate_fault_count": "Number of top-plate fault bits",
+          "reg_min_config": "Minimum configuration number",
+          "reg_max_config": "Maximum configuration number"
+        }
       }
     }
   },
@@ -63,9 +131,12 @@
       "system_ready": { "name": "System ready" },
       "system_fault": { "name": "System fault" },
       "estop_active": { "name": "Emergency stop" },
+      "estop_indoor": { "name": "E-stop indoor" },
+      "estop_outdoor": { "name": "E-stop outdoor" },
       "floors_moving": { "name": "Floors moving" },
       "bad_modbus_comm": { "name": "Bad Modbus comm" },
       "ready_for_external": { "name": "Ready for external commands" },
+      "control_key_on": { "name": "Control key on" },
       "main_fault_vfd": { "name": "Main floor VFD fault" },
       "main_fault_overtravel_up": { "name": "Main floor overtravel up" },
       "main_fault_overtravel_down": { "name": "Main floor overtravel down" },

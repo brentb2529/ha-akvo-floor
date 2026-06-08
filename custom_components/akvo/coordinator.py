@@ -10,8 +10,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .akvo_client import AkvoClient, AkvoConnectionError, AkvoState
-from .const import DOMAIN, UPDATE_INTERVAL_SECONDS
+from .const import DOMAIN, UPDATE_INTERVAL_SECONDS, WATCHDOG_SERVICE_INTERVAL, WATCHDOG_TIMEOUT
 from .modbus_transport import ModbusTransport
+from .register_map import RegisterMap
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ type AkvoConfigEntry = ConfigEntry["AkvoCoordinator"]
 
 
 class AkvoCoordinator(DataUpdateCoordinator[AkvoState]):
-    """Polls HR0..HR9 and owns the AKVO safety client."""
+    """Polls the AKVO status/fault/position/current registers and owns the safety client."""
 
     config_entry: AkvoConfigEntry
 
@@ -37,9 +38,15 @@ class AkvoCoordinator(DataUpdateCoordinator[AkvoState]):
             update_interval=timedelta(seconds=UPDATE_INTERVAL_SECONDS),
         )
         self.transport = transport
+        # Build the register map from config-entry data so any project-specific
+        # address overrides (reg_* keys) are picked up automatically.
+        reg_map = RegisterMap.from_config(entry.data)
         self.client = AkvoClient(
             read_fn=transport.read_holding,
             write_fn=transport.write_holding,
+            reg_map=reg_map,
+            watchdog_timeout=WATCHDOG_TIMEOUT,
+            service_interval=WATCHDOG_SERVICE_INTERVAL,
         )
 
     async def _async_update_data(self) -> AkvoState:

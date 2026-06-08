@@ -1,4 +1,8 @@
-"""AKVO sensors: positions, motor currents, active configuration."""
+"""AKVO sensors: positions, motor currents, active configuration.
+
+Position sensors use device_class=DISTANCE, native_unit=METERS, signed int16.
+HA handles unit conversion (mm, cm, m, ft, in) automatically from METERS.
+"""
 
 from __future__ import annotations
 
@@ -11,7 +15,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfElectricCurrent, UnitOfLength
+from homeassistant.const import EntityCategory, UnitOfElectricCurrent, UnitOfLength
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -83,7 +87,7 @@ async def async_setup_entry(
 
 
 class AkvoSensor(AkvoEntity, SensorEntity):
-    """A scalar AKVO sensor."""
+    """A scalar AKVO sensor (position or current)."""
 
     entity_description: AkvoSensorDescription
 
@@ -99,19 +103,28 @@ class AkvoSensor(AkvoEntity, SensorEntity):
 
 
 class AkvoActiveConfigurationSensor(AkvoEntity, SensorEntity):
-    """Active configuration derived from HR1 achieved bits."""
+    """Active configuration name derived from HR1 "configuration achieved" bits.
+
+    Returns the operator-assigned preset name when one is configured, or a
+    generic "Configuration #N" label, or PRESET_NONE when no config is active.
+
+    The preset names are re-read from options on every state call so a reload
+    (triggered by options change) picks up new names immediately on the next
+    coordinator update.
+    """
 
     _attr_translation_key = "active_configuration"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator: AkvoCoordinator) -> None:
         super().__init__(coordinator, "active_configuration")
-        self._presets: dict[str, str] = coordinator.config_entry.options.get(
-            CONF_PRESETS, {}
-        )
 
     @property
     def native_value(self) -> str:
         cfg = self.coordinator.data.active_configuration
         if cfg is None:
             return PRESET_NONE
-        return self._presets.get(str(cfg), f"Configuration #{cfg}")
+        presets: dict[str, str] = self.coordinator.config_entry.options.get(
+            CONF_PRESETS, {}
+        )
+        return presets.get(str(cfg), f"Configuration #{cfg}")

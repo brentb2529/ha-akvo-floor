@@ -1,0 +1,119 @@
+# AKVO Movable Floor — Integration Quality Scale self-assessment
+# Target: Silver (aiming for Gold once HACS repo is live)
+rules:
+  # Bronze rules (all required)
+  action-setup:
+    status: exempt
+    comment: No custom actions/services; commands go through the select entity.
+  appropriate-polling:
+    status: done
+    comment: 0.5 s poll drives the safety display and watchdog keep-alive; not user-configurable.
+  brands:
+    status: todo
+    comment: Icon/logo assets not yet submitted to the HA brands repo.
+  common-modules:
+    status: done
+    comment: AkvoEntity base, AkvoCoordinator, RegisterMap, ModbusTransport are all shared modules.
+  config-flow:
+    status: done
+    comment: Full config + options flow with validation, presets, and register-map overrides.
+  config-flow-test-coverage:
+    status: todo
+    comment: Config-flow tests cover the happy path; error paths need expansion.
+  dependency-transparency:
+    status: done
+    comment: pymodbus>=3.6.0 declared in manifest.json requirements.
+  docs-actions:
+    status: exempt
+    comment: No custom actions.
+  docs-high-level-description:
+    status: done
+    comment: README has safety model, entity table, and setup instructions.
+  docs-installation:
+    status: done
+    comment: README covers HACS install and manual install.
+  docs-removal:
+    status: done
+    comment: README documents removal steps.
+  entity-event-setup:
+    status: done
+    comment: CoordinatorEntity handles all subscriptions via base class.
+  entity-unique-id:
+    status: done
+    comment: All entities use entry_id + key as unique_id.
+  has-entity-name:
+    status: done
+    comment: _attr_has_entity_name = True on AkvoEntity base.
+  runtime-data:
+    status: done
+    comment: entry.runtime_data = coordinator set in async_setup_entry.
+  test-before-configure:
+    status: done
+    comment: _validate_connection in config flow does a real Modbus connect + read.
+  test-before-setup:
+    status: done
+    comment: async_config_entry_first_refresh raises ConfigEntryNotReady on failure.
+  unique-config-entry:
+    status: done
+    comment: _async_abort_entries_match({CONF_HOST, CONF_PORT}) in config flow.
+
+  # Silver rules
+  config-entry-unloading:
+    status: done
+    comment: async_unload_entry unloads platforms and closes the transport.
+  diagnostics:
+    status: done
+    comment: diagnostics.py exposes register map, decoded state, and last abort reason.
+  discovery:
+    status: exempt
+    comment: Modbus TCP has no standard discovery protocol; manual host entry is required.
+  docs-configuration-parameters:
+    status: done
+    comment: README documents all config and options parameters including register-map overrides.
+  docs-known-limitations:
+    status: done
+    comment: README safety section notes project-specific map requirement and hardware-validation prerequisite.
+  entity-category:
+    status: done
+    comment: Fault and diagnostic sensors use EntityCategory.DIAGNOSTIC; primary safety entities have no category.
+  entity-disabled-by-default:
+    status: todo
+    comment: High-cardinality diagnostic sensors (individual drive faults) should be disabled_by_default=True.
+  exception-translations:
+    status: done
+    comment: All ServiceValidationError and HomeAssistantError use translation_domain and translation_key.
+  icon-translations:
+    status: todo
+    comment: No icon overrides yet; using device_class defaults.
+  reconfiguration-flow:
+    status: todo
+    comment: No reconfigure step implemented yet.
+  repair-issues:
+    status: todo
+    comment: Could raise a repair when bad_modbus_comm persists.
+  stale-devices:
+    status: exempt
+    comment: Single device per config entry; no stale device scenario.
+
+  # Gold rules (gaps to close)
+  devices:
+    status: done
+    comment: All entities grouped under one DeviceInfo with manufacturer/model/configuration_url.
+  docs-device-trigger:
+    status: exempt
+    comment: No device triggers.
+  docs-use-cases:
+    status: todo
+    comment: README use-case examples needed.
+  entity-translations:
+    status: done
+    comment: All entities use translation_key, strings.json and translations/en.json present.
+  log-when-unavailable:
+    status: done
+    comment: CoordinatorEntity handles unavailability; UpdateFailed logged by coordinator.
+  parallel-updates:
+    status: done
+    comment: PARALLEL_UPDATES not set; coordinator pattern serialises updates naturally.
+  reauthentication-flow:
+    status: exempt
+    comment: Modbus TCP has no authentication.
