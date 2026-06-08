@@ -3,34 +3,45 @@
     "step": {
       "user": {
         "title": "Connect to AKVO Movable Floor",
-        "description": "Enter the AKVO Modbus TCP address. Use a test/fake server in development — never point at live hardware without coordinator sign-off.",
+        "description": "Enter the Modbus TCP address of your AKVO Spiralift controller. The integration will test the connection before continuing.",
         "data": {
           "host": "Host",
           "port": "Port"
         },
         "data_description": {
-          "host": "IP address or hostname of the AKVO Modbus TCP server (project-specific; see 725-<project> document)",
-          "port": "Modbus TCP port (default 502)"
+          "host": "IP address or hostname of the AKVO Modbus TCP server. See your project-specific map document (725-<project>) for the address.",
+          "port": "Modbus TCP port (default 502)."
         }
       },
       "presets": {
-        "title": "AKVO presets & command gate",
-        "description": "Name each AKVO configuration preset (1–8) you want offered (e.g. \"Pool mode\", \"Deck mode\"). Leave blank to hide. Commands default OFF — enable only after the project map and on-hardware watchdog validation are approved.",
+        "title": "Preset names & command gate",
+        "description": "Give each AKVO configuration preset a friendly name (for example \"Pool mode\" or \"Deck mode\"). Leave a name blank to hide that preset. The command gate is **OFF by default** — only turn it on after the register map and on-hardware watchdog validation are fully approved.",
         "data": {
-          "preset_1": "Configuration #1 name",
-          "preset_2": "Configuration #2 name",
-          "preset_3": "Configuration #3 name",
-          "preset_4": "Configuration #4 name",
-          "preset_5": "Configuration #5 name",
-          "preset_6": "Configuration #6 name",
-          "preset_7": "Configuration #7 name",
-          "preset_8": "Configuration #8 name",
-          "enable_commands": "Enable preset commands (SAFETY: leave OFF until approved)"
+          "preset_1": "Configuration §1 name",
+          "preset_2": "Configuration §2 name",
+          "preset_3": "Configuration §3 name",
+          "preset_4": "Configuration §4 name",
+          "preset_5": "Configuration §5 name",
+          "preset_6": "Configuration §6 name",
+          "preset_7": "Configuration §7 name",
+          "preset_8": "Configuration §8 name",
+          "enable_commands": "Enable preset commands"
+        },
+        "data_description": {
+          "preset_1": "Friendly name shown in the Home Assistant UI for AKVO configuration §1. Leave blank to hide.",
+          "preset_2": "Friendly name for AKVO configuration §2. Leave blank to hide.",
+          "preset_3": "Friendly name for AKVO configuration §3. Leave blank to hide.",
+          "preset_4": "Friendly name for AKVO configuration §4. Leave blank to hide.",
+          "preset_5": "Friendly name for AKVO configuration §5. Leave blank to hide.",
+          "preset_6": "Friendly name for AKVO configuration §6. Leave blank to hide.",
+          "preset_7": "Friendly name for AKVO configuration §7. Leave blank to hide.",
+          "preset_8": "Friendly name for AKVO configuration §8. Leave blank to hide.",
+          "enable_commands": "⚠️ SAFETY: Leave this OFF until (1) the project register map (725-<project>) is verified against the register-map overrides, (2) on-hardware watchdog validation has passed, and (3) a qualified operator has approved. Commands are rejected by default."
         }
       },
       "register_map": {
         "title": "Register map overrides (project-specific)",
-        "description": "Leave all fields at their defaults unless your project-specific AKVO map document (725-<project>) specifies different register addresses or bit positions. Incorrect values here will break decoding and safety detection. Verify on hardware before enabling commands.",
+        "description": "Leave all fields at their defaults unless your project-specific AKVO map document (725-<project>) specifies different register addresses or bit positions. **Incorrect values here will break safety detection.** Verify against your 725-<project> document and confirm on hardware before enabling commands.",
         "data": {
           "reg_hr_status_1": "HR Status Word 1 address",
           "reg_hr_status_2": "HR Status Word 2 address",
@@ -58,36 +69,76 @@
           "reg_topplate_fault_count": "Number of top-plate fault bits",
           "reg_min_config": "Minimum configuration number",
           "reg_max_config": "Maximum configuration number"
+        },
+        "data_description": {
+          "reg_hr_status_1": "Holding register address for General Status Word 1 (HR0 in example map 725-XXXXX).",
+          "reg_hr_status_2": "Holding register address for General Status Word 2 (HR1 in example map).",
+          "reg_hr_fault_main": "Holding register address for main-floor drive fault word (HR2 in example map).",
+          "reg_hr_fault_baja": "Holding register address for Baja drive fault word (HR3 in example map).",
+          "reg_hr_fault_topplate": "Holding register address for top-plate fault word (HR4 in example map).",
+          "reg_hr_outputs": "Holding register address for output word (HR5 in example map).",
+          "reg_hr_pos_main": "Holding register address for main floor position in mm (HR6 in example map).",
+          "reg_hr_pos_baja": "Holding register address for Baja position in mm (HR7 in example map).",
+          "reg_hr_current_main": "Holding register address for main motor current in cA (HR8 in example map).",
+          "reg_hr_current_baja": "Holding register address for Baja motor current in cA (HR9 in example map).",
+          "reg_hr_command": "Holding register address for the external command word (HR10 in example map). This is the write register for configuration requests.",
+          "reg_hr_watchdog": "Holding register address for the external watchdog mirror (HR11 in example map).",
+          "reg_s1_system_ready": "Bit position in Status Word 1 for the system-ready flag (bit 0 in example map).",
+          "reg_s1_system_fault": "Bit position in Status Word 1 for the system-fault flag (bit 1 in example map).",
+          "reg_s1_estop_indoor": "Bit position in Status Word 1 for indoor emergency stop (bit 3 in example map).",
+          "reg_s1_estop_outdoor": "Bit position in Status Word 1 for outdoor emergency stop (bit 4 in example map).",
+          "reg_s1_watchdog_from_akvo": "Bit position in Status Word 1 for the AKVO watchdog signal to mirror (bit 13 in example map).",
+          "reg_s1_bad_modbus_comm": "Bit position in Status Word 1 for the bad-Modbus-comm fault (bit 14 in example map).",
+          "reg_s1_ready_for_external": "Bit position in Status Word 1 for ready-for-external-commands gate (bit 15 in example map).",
+          "reg_s2_floors_moving": "Bit position in Status Word 2 for the floors-moving flag (bit 0 in example map).",
+          "reg_s2_config_achieved_base": "Base bit position in Status Word 2 for configuration-achieved flags. Config N achieved = bit (base + N - 1). (bit 2 in example map).",
+          "reg_cmd_move_config_base": "Base bit position in the command word for move-to-config requests. Config N = bit (base + N - 1). (bit 1 in example map). Bit 0 (System Reset) is never written.",
+          "reg_wd_external": "Bit position in the watchdog register for the external watchdog mirror (bit 0 in example map).",
+          "reg_topplate_fault_count": "Number of top-plate fault bits in the top-plate fault word (14 in example map).",
+          "reg_min_config": "Minimum valid configuration number (1 in example map).",
+          "reg_max_config": "Maximum valid configuration number (8 in example map)."
         }
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to the AKVO Modbus server."
+      "cannot_connect": "Unable to connect to the AKVO Modbus server. Check the IP address and port, and ensure the controller is reachable."
     },
     "abort": {
-      "already_configured": "This AKVO server is already configured."
+      "already_configured": "This AKVO server is already configured.",
+      "reconfigure_successful": "Host and port updated. The integration will reload with the new address."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "AKVO presets & command gate",
-        "description": "Edit preset names and the command gate. Commands stay OFF until you explicitly enable them.",
+        "title": "Preset names & command gate",
+        "description": "Edit preset names and the command gate. Changes reload the integration automatically.",
         "data": {
-          "preset_1": "Configuration #1 name",
-          "preset_2": "Configuration #2 name",
-          "preset_3": "Configuration #3 name",
-          "preset_4": "Configuration #4 name",
-          "preset_5": "Configuration #5 name",
-          "preset_6": "Configuration #6 name",
-          "preset_7": "Configuration #7 name",
-          "preset_8": "Configuration #8 name",
-          "enable_commands": "Enable preset commands (SAFETY: leave OFF until approved)"
+          "preset_1": "Configuration §1 name",
+          "preset_2": "Configuration §2 name",
+          "preset_3": "Configuration §3 name",
+          "preset_4": "Configuration §4 name",
+          "preset_5": "Configuration §5 name",
+          "preset_6": "Configuration §6 name",
+          "preset_7": "Configuration §7 name",
+          "preset_8": "Configuration §8 name",
+          "enable_commands": "Enable preset commands"
+        },
+        "data_description": {
+          "preset_1": "Friendly name shown in Home Assistant for AKVO configuration §1. Leave blank to hide.",
+          "preset_2": "Friendly name for AKVO configuration §2. Leave blank to hide.",
+          "preset_3": "Friendly name for AKVO configuration §3. Leave blank to hide.",
+          "preset_4": "Friendly name for AKVO configuration §4. Leave blank to hide.",
+          "preset_5": "Friendly name for AKVO configuration §5. Leave blank to hide.",
+          "preset_6": "Friendly name for AKVO configuration §6. Leave blank to hide.",
+          "preset_7": "Friendly name for AKVO configuration §7. Leave blank to hide.",
+          "preset_8": "Friendly name for AKVO configuration §8. Leave blank to hide.",
+          "enable_commands": "⚠️ SAFETY: Only enable after (1) your project register map (725-<project>) is verified in the next step, (2) on-hardware watchdog validation has passed, and (3) a qualified operator has approved. Defaults to OFF."
         }
       },
       "register_map": {
         "title": "Register map overrides (project-specific)",
-        "description": "Adjust register addresses to match your 725-<project> document. Incorrect values break safety detection. Verify on hardware before enabling commands.",
+        "description": "Adjust register addresses and bit positions to match your 725-<project> document. **Incorrect values break safety detection.** Leave at defaults if your project map matches the example map 725-XXXXX.",
         "data": {
           "reg_hr_status_1": "HR Status Word 1 address",
           "reg_hr_status_2": "HR Status Word 2 address",
@@ -115,10 +166,39 @@
           "reg_topplate_fault_count": "Number of top-plate fault bits",
           "reg_min_config": "Minimum configuration number",
           "reg_max_config": "Maximum configuration number"
+        },
+        "data_description": {
+          "reg_hr_status_1": "Holding register address for General Status Word 1 (HR0 in example map 725-XXXXX).",
+          "reg_hr_status_2": "Holding register address for General Status Word 2 (HR1 in example map).",
+          "reg_hr_fault_main": "Holding register address for main-floor drive fault word (HR2 in example map).",
+          "reg_hr_fault_baja": "Holding register address for Baja drive fault word (HR3 in example map).",
+          "reg_hr_fault_topplate": "Holding register address for top-plate fault word (HR4 in example map).",
+          "reg_hr_outputs": "Holding register address for output word (HR5 in example map).",
+          "reg_hr_pos_main": "Holding register address for main floor position in mm (HR6 in example map).",
+          "reg_hr_pos_baja": "Holding register address for Baja position in mm (HR7 in example map).",
+          "reg_hr_current_main": "Holding register address for main motor current in cA (HR8 in example map).",
+          "reg_hr_current_baja": "Holding register address for Baja motor current in cA (HR9 in example map).",
+          "reg_hr_command": "Holding register address for the external command word (HR10 in example map).",
+          "reg_hr_watchdog": "Holding register address for the external watchdog mirror (HR11 in example map).",
+          "reg_s1_system_ready": "Bit position in Status Word 1 for the system-ready flag (bit 0 in example map).",
+          "reg_s1_system_fault": "Bit position in Status Word 1 for the system-fault flag (bit 1 in example map).",
+          "reg_s1_estop_indoor": "Bit position in Status Word 1 for indoor emergency stop (bit 3 in example map).",
+          "reg_s1_estop_outdoor": "Bit position in Status Word 1 for outdoor emergency stop (bit 4 in example map).",
+          "reg_s1_watchdog_from_akvo": "Bit position in Status Word 1 for the AKVO watchdog signal (bit 13 in example map).",
+          "reg_s1_bad_modbus_comm": "Bit position in Status Word 1 for bad-Modbus-comm fault (bit 14 in example map).",
+          "reg_s1_ready_for_external": "Bit position in Status Word 1 for ready-for-external gate (bit 15 in example map).",
+          "reg_s2_floors_moving": "Bit position in Status Word 2 for floors-moving (bit 0 in example map).",
+          "reg_s2_config_achieved_base": "Base bit in Status Word 2 for config-achieved flags. Config N = bit (base + N - 1). (bit 2 in example map).",
+          "reg_cmd_move_config_base": "Base bit in command word for move-to-config. Config N = bit (base + N - 1). (bit 1 in example map). Bit 0 (System Reset) is never written.",
+          "reg_wd_external": "Bit position in the watchdog register for external watchdog mirror (bit 0 in example map).",
+          "reg_topplate_fault_count": "Number of top-plate fault bits (14 in example map).",
+          "reg_min_config": "Minimum valid configuration number (1 in example map).",
+          "reg_max_config": "Maximum valid configuration number (8 in example map)."
         }
       }
     }
   },
+  "config_subentries": {},
   "entity": {
     "sensor": {
       "main_floor_position": { "name": "Main floor position" },
@@ -163,7 +243,7 @@
   },
   "exceptions": {
     "commands_disabled": {
-      "message": "AKVO preset commands are disabled. Enable them in the integration options only after the project map and on-hardware watchdog validation are approved."
+      "message": "AKVO preset commands are disabled. Enable them in Options (Preset names & command gate) only after the project register map and on-hardware watchdog validation are approved."
     },
     "unknown_preset": {
       "message": "Unknown AKVO preset: {option}."

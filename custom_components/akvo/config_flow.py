@@ -1,4 +1,4 @@
-"""Config & options flow for AKVO Movable Floor.
+"""Config, options, and reconfigure flows for AKVO Movable Floor.
 
 SAFETY-CRITICAL: ``enable_commands`` defaults to False. An operator must
 explicitly set it to True in options after the project-specific register map
@@ -29,6 +29,15 @@ from homeassistant.config_entries import (
 )
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import callback
+from homeassistant.helpers.selector import (
+    BooleanSelector,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
+)
 
 from .akvo_client import AkvoConnectionError
 from .const import (
@@ -52,6 +61,14 @@ _OVERRIDABLE_REG_FIELDS: list[str] = [
     if isinstance(f.default, int)
 ]
 
+# Selector for 16-bit register addresses / bit positions (0..65535).
+_REG_SELECTOR = NumberSelector(
+    NumberSelectorConfig(min=0, max=65535, step=1, mode=NumberSelectorMode.BOX)
+)
+
+# Selector for preset name strings (plain single-line text).
+_TEXT_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT))
+
 
 async def _validate_connection(host: str, port: int) -> None:
     transport = ModbusTransport(host, port)
@@ -67,19 +84,21 @@ def _preset_schema(defaults: dict[str, Any]) -> vol.Schema:
 
     Presets map AKVO config #N (1..8) to a friendly name (e.g. "Pool mode").
     Leaving a name blank means that preset is NOT offered in the select.
+    Uses TextSelector for proper UI text inputs and BooleanSelector for the
+    safety gate toggle.
     """
     fields: dict[Any, Any] = {}
     existing: dict[str, str] = defaults.get(CONF_PRESETS, {})
     for n in range(MIN_CONFIG, MAX_CONFIG + 1):
         fields[
             vol.Optional(f"preset_{n}", default=existing.get(str(n), ""))
-        ] = str
+        ] = _TEXT_SELECTOR
     fields[
         vol.Required(
             CONF_ENABLE_COMMANDS,
             default=defaults.get(CONF_ENABLE_COMMANDS, DEFAULT_ENABLE_COMMANDS),
         )
-    ] = bool
+    ] = BooleanSelector()
     return vol.Schema(fields)
 
 
@@ -93,19 +112,20 @@ def _collect_presets(user_input: dict[str, Any]) -> dict[str, str]:
 
 
 def _reg_map_schema(existing_data: dict[str, Any]) -> vol.Schema:
-    """Schema for the optional register-map override step.
+    """Schema for the register-map override step.
 
     Each overridable integer field is shown with its default value pre-filled
-    from *existing_data* so repeat edits are non-destructive.
+    from *existing_data* so repeat edits are non-destructive. Uses
+    NumberSelector for proper numeric UI inputs with range validation.
     """
     default_map = RegisterMap()
     schema_fields: dict[Any, Any] = {}
     for fname in _OVERRIDABLE_REG_FIELDS:
         conf_key = CONF_REG_PREFIX + fname
         default_val = existing_data.get(conf_key, getattr(default_map, fname))
-        schema_fields[vol.Optional(conf_key, default=default_val)] = vol.All(
-            int, vol.Range(min=0, max=65535)
-        )
+        schema_fields[
+            vol.Optional(conf_key, default=int(default_val))
+        ] = _REG_SELECTOR
     return vol.Schema(schema_fields)
 
 
@@ -116,16 +136,18 @@ def _collect_reg_overrides(
 
     We persist only non-default values to keep entry data compact. On read,
     ``RegisterMap.from_config`` falls back to defaults for absent keys.
+    NumberSelector returns floats; cast to int here.
     """
     default_map = RegisterMap()
     overrides: dict[str, Any] = {}
     for fname in _OVERRIDABLE_REG_FIELDS:
         conf_key = CONF_REG_PREFIX + fname
-        value = user_input.get(conf_key, existing_data.get(conf_key))
-        if value is None:
+        raw = user_input.get(conf_key, existing_data.get(conf_key))
+        if raw is None:
             continue
+        value = int(raw)
         if value != getattr(default_map, fname):
-            overrides[conf_key] = int(value)
+            overrides[conf_key] = value
     return overrides
 
 
@@ -144,7 +166,7 @@ class AkvoConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             host = user_input[CONF_HOST]
-            port = user_input[CONF_PORT]
+            port = int(user_input[CONF_PORT])
             self._async_abort_entries_match({CONF_HOST: host, CONF_PORT: port})
             try:
                 await _validate_connection(host, port)
@@ -156,8 +178,14 @@ class AkvoConfigFlow(ConfigFlow, domain=DOMAIN):
 
         schema = vol.Schema(
             {
-                vol.Required(CONF_HOST): str,
-                vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
+                vol.Required(CONF_HOST): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.TEXT)
+                ),
+                vol.Required(CONF_PORT, default=DEFAULT_PORT): NumberSelector(
+                    NumberSelectorConfig(
+                        min=1, max=65535, step=1, mode=NumberSelectorMode.BOX
+                    )
+                ),
             }
         )
         return self.async_show_form(
@@ -170,7 +198,7 @@ class AkvoConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._options = {
                 CONF_PRESETS: _collect_presets(user_input),
-                CONF_ENABLE_COMMANDS: user_input[CONF_ENABLE_COMMANDS],
+                CONF_ENABLE_COMMANDS: bool(user_input[CONF_ENABLE_COMMANDS]),
             }
             return await self.async_step_register_map()
         return self.async_show_form(
@@ -184,9 +212,11 @@ class AkvoConfigFlow(ConfigFlow, domain=DOMAIN):
         """Optional: override register addresses for project-specific map."""
         if user_input is not None:
             reg_overrides = _collect_reg_overrides(user_input, {})
-            data = {**self._conn, **reg_overrides}
+            host = self._conn[CONF_HOST]
+            port = int(self._conn[CONF_PORT])
+            data = {CONF_HOST: host, CONF_PORT: port, **reg_overrides}
             return self.async_create_entry(
-                title="AKVO Movable Floor",
+                title=f"AKVO Movable Floor ({host}:{port})",
                 data=data,
                 options=self._options,
             )
@@ -194,6 +224,56 @@ class AkvoConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="register_map",
             data_schema=_reg_map_schema({}),
             description_placeholders={},
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Allow changing host/port without deleting the entry.
+
+        All entity history and automations are preserved because unique_ids are
+        based on entry_id, not on host/port.
+        """
+        errors: dict[str, str] = {}
+        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        assert entry is not None
+
+        if user_input is not None:
+            host = user_input[CONF_HOST]
+            port = int(user_input[CONF_PORT])
+            try:
+                await _validate_connection(host, port)
+            except AkvoConnectionError:
+                errors["base"] = "cannot_connect"
+            else:
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data={
+                        **entry.data,
+                        CONF_HOST: host,
+                        CONF_PORT: port,
+                    },
+                    title=f"AKVO Movable Floor ({host}:{port})",
+                )
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_HOST, default=entry.data.get(CONF_HOST, "")
+                ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
+                vol.Required(
+                    CONF_PORT, default=entry.data.get(CONF_PORT, DEFAULT_PORT)
+                ): NumberSelector(
+                    NumberSelectorConfig(
+                        min=1, max=65535, step=1, mode=NumberSelectorMode.BOX
+                    )
+                ),
+            }
+        )
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=schema,
+            errors=errors,
         )
 
     @staticmethod
@@ -205,13 +285,16 @@ class AkvoConfigFlow(ConfigFlow, domain=DOMAIN):
 class AkvoOptionsFlow(OptionsFlow):
     """Edit preset names, the enable_commands safety gate, and register-map overrides."""
 
+    def __init__(self) -> None:
+        self._pending_options: dict[str, Any] = {}
+
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
             self._pending_options = {
                 CONF_PRESETS: _collect_presets(user_input),
-                CONF_ENABLE_COMMANDS: user_input[CONF_ENABLE_COMMANDS],
+                CONF_ENABLE_COMMANDS: bool(user_input[CONF_ENABLE_COMMANDS]),
             }
             return await self.async_step_register_map()
         return self.async_show_form(

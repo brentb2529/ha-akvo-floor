@@ -31,7 +31,8 @@ are satisfied:**
 
 1. The project-specific AKVO Modbus map document (`725-<project>`) has been
    obtained and every register address and bit position has been verified
-   against this integration's register-map settings (see below).
+   against this integration's register-map settings (see Register-map overrides
+   in Options, below).
 2. On-hardware watchdog validation has been performed: observe HR11 mirroring
    HR0 bit13 correctly within the AKVO PLC's 5-second window.
 3. A qualified operator has signed off on the configuration.
@@ -43,8 +44,8 @@ AKVO example map `725-XXXXX`. **This example map is for development and testing
 only.** Every real AKVO Spiralift installation is delivered with a project-
 specific document (`725-<project>`) that defines the exact Modbus register
 layout for that controller. You MUST verify your installation's map against
-the defaults and override any differences in the integration's Options
-(Advanced: Register map overrides) before enabling commands.
+the defaults and override any differences in the integration's Options before
+enabling commands.
 
 Incorrect register-map settings will result in wrong state decoding and missed
 fault detection. The safety state machine cannot protect against a mis-mapped
@@ -117,51 +118,104 @@ Home Assistant converts automatically to any preferred unit.
 
 ---
 
-## Installation
+## Install & Setup
 
-### HACS
+### SAFETY NOTE
 
-1. Add this repository as a custom HACS repository (type: Integration).
-2. Search for "AKVO Movable Floor" and install.
-3. Restart Home Assistant.
-4. Go to **Settings → Devices & Services → Add Integration → AKVO Movable Floor**.
+This integration controls infrastructure that moves a pool floor. The register
+map and command gate are configured entirely in the HA UI (no YAML or file
+editing required). **The command gate (`enable_commands`) defaults to OFF and
+MUST stay off until the register map is verified and on-hardware validation is
+complete.** See the SAFETY section above.
 
-### Manual
+### Install via HACS (recommended)
 
-Copy `custom_components/akvo/` into your Home Assistant `custom_components/`
-directory and restart.
+1. In Home Assistant, open **HACS** and go to **Integrations**.
+2. Click the three-dot menu (top right) and choose **Custom repositories**.
+3. Add `https://github.com/brenbt2529/ha-akvo-floor` with category **Integration**.
+4. Search for "AKVO Movable Floor" and click **Download**.
+5. Restart Home Assistant.
+
+### Install manually
+
+Copy the `custom_components/akvo/` directory into your Home Assistant
+`custom_components/` directory and restart.
 
 ---
 
-## Configuration
+### Step 1 — Add the integration
 
-### Step 1 — Connection
+Go to **Settings → Devices & Services → Add Integration** and search for
+**AKVO Movable Floor**.
+
+### Step 2 — Connection
 
 Enter the IP address (or hostname) and Modbus TCP port of your AKVO controller.
-The integration validates the connection before proceeding.
+The integration tests the connection before proceeding. If the connection fails,
+check the address and ensure the Modbus TCP server is reachable.
 
-### Step 2 — Presets & command gate
+- **Host**: IP address or hostname from your project's `725-<project>` document.
+- **Port**: Modbus TCP port (default 502).
 
-Name each AKVO configuration preset (1–8) you want available in Home Assistant
-(e.g. "Pool mode", "Deck mode"). Leave a name blank to hide that preset.
-`enable_commands` defaults to **OFF** — leave it off until the register map
-and on-hardware validation are complete.
+### Step 3 — Preset names
 
-### Step 3 — Register map overrides (Advanced)
+Give each AKVO configuration preset a friendly name (for example "Pool mode" or
+"Deck mode"). Leave a name blank to hide that preset. Up to 8 presets (AKVO
+configurations 1–8) can be named.
 
-Every register address and bit position defaults to the example map `725-XXXXX`.
-If your project-specific `725-<project>` document specifies different values,
-enter them here. Incorrect values here will break safety detection.
+The **Enable preset commands** toggle is **OFF by default**. Leave it off at
+this stage.
 
-All overrides can be changed later in **Options** (the same three-step flow).
+### Step 4 — Register map overrides
+
+This step is shown with the default values from the example map `725-XXXXX`.
+If your project-specific `725-<project>` document specifies different register
+addresses or bit positions, enter them here. Each field includes a description
+of what it does and what the default value is.
+
+**If your project map matches the example map, leave all fields at their
+defaults and click Submit.**
 
 ---
 
-## Options
+### After initial setup — enabling commands
 
-Options expose the same preset names, command gate, and register-map overrides
-as the initial setup flow. Changes trigger an automatic reload so the new
-register map and preset names take effect immediately.
+Once the register map is verified and on-hardware watchdog validation has passed:
+
+1. Go to **Settings → Devices & Services → AKVO Movable Floor → Configure**.
+2. In the **Preset names & command gate** step, toggle **Enable preset commands** ON.
+3. Continue through the **Register map overrides** step (no changes needed if
+   the map is already set correctly).
+4. The integration reloads automatically.
+
+The `select.…_configuration_request` entity will now accept preset requests.
+
+---
+
+### Changing the host or port (reconfigure)
+
+To change the controller's IP address without losing entity history and
+automations:
+
+1. Go to **Settings → Devices & Services → AKVO Movable Floor**.
+2. Click the three-dot menu and choose **Reconfigure**.
+3. Enter the new host and port. The integration validates the connection and
+   reloads.
+
+---
+
+### Options — editing presets, command gate, and register map
+
+All settings are available after setup via **Configure**:
+
+- **Preset names & command gate**: rename presets, add or hide presets, toggle
+  the `enable_commands` safety gate.
+- **Register map overrides**: update register addresses or bit positions. Each
+  field shows its default value and a description. Incorrect values here break
+  safety detection — only change values confirmed in your `725-<project>` document.
+
+Changes reload the integration automatically so the new map takes effect
+immediately.
 
 ---
 
@@ -172,7 +226,7 @@ python -m venv .venv
 .venv/bin/pip install pymodbus pytest pytest-asyncio \
     pytest-homeassistant-custom-component
 
-# Run the full suite (73 tests: safety, decode, register-map, watchdog, HA, e2e)
+# Run the full suite (88 tests: safety, decode, register-map, watchdog, HA, config-flow, e2e)
 .venv/bin/python -m pytest
 
 # Start the fake AKVO PLC (example map 725-XXXXX) on port 5020
@@ -229,6 +283,5 @@ Self-assessed at **Silver** (targeting Gold). Key gaps:
 - Individual drive-fault sensors should be `disabled_by_default = True` (high
   cardinality, installer-level detail).
 - Brands repo icon/logo not yet submitted.
-- Config-flow reconfigure step not yet implemented.
 
 See `quality_scale.yaml` for the full rule-by-rule status.

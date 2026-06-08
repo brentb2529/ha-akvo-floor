@@ -26,7 +26,9 @@ PLATFORMS: list[Platform] = [
 
 async def async_setup_entry(hass: HomeAssistant, entry: AkvoConfigEntry) -> bool:
     """Set up AKVO from a config entry."""
-    transport = ModbusTransport(entry.data[CONF_HOST], entry.data[CONF_PORT])
+    # CONF_PORT stored as int in new entries; cast defensively in case an older
+    # entry stored it as float (HA NumberSelector behaviour).
+    transport = ModbusTransport(entry.data[CONF_HOST], int(entry.data[CONF_PORT]))
     try:
         await transport.async_connect()
     except AkvoConnectionError as err:

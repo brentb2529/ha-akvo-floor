@@ -18,8 +18,8 @@ rules:
     status: done
     comment: Full config + options flow with validation, presets, and register-map overrides.
   config-flow-test-coverage:
-    status: todo
-    comment: Config-flow tests cover the happy path; error paths need expansion.
+    status: done
+    comment: Config/options/reconfigure flows tested — happy path, connection error, duplicate abort, reg-map overrides, options update, and reconfigure.
   dependency-transparency:
     status: done
     comment: pymodbus>=3.6.0 declared in manifest.json requirements.
@@ -86,8 +86,8 @@ rules:
     status: todo
     comment: No icon overrides yet; using device_class defaults.
   reconfiguration-flow:
-    status: todo
-    comment: No reconfigure step implemented yet.
+    status: done
+    comment: async_step_reconfigure implemented; validates connection and calls async_update_reload_and_abort.
   repair-issues:
     status: todo
     comment: Could raise a repair when bad_modbus_comm persists.
