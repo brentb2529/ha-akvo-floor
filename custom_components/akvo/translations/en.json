@@ -1,0 +1,104 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to AKVO Movable Floor",
+        "description": "Enter the AKVO Modbus TCP address. Use a test/fake server in development — never point at live hardware without coordinator sign-off.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        }
+      },
+      "presets": {
+        "title": "AKVO presets & command gate",
+        "description": "Name each AKVO configuration preset (1–8) you want offered (e.g. \"Pool mode\", \"Deck mode\"). Leave blank to hide. Commands default OFF — enable only after the project map and on-hardware watchdog validation are approved.",
+        "data": {
+          "preset_1": "Configuration #1 name",
+          "preset_2": "Configuration #2 name",
+          "preset_3": "Configuration #3 name",
+          "preset_4": "Configuration #4 name",
+          "preset_5": "Configuration #5 name",
+          "preset_6": "Configuration #6 name",
+          "preset_7": "Configuration #7 name",
+          "preset_8": "Configuration #8 name",
+          "enable_commands": "Enable preset commands (SAFETY: leave OFF until approved)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the AKVO Modbus server."
+    },
+    "abort": {
+      "already_configured": "This AKVO server is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "AKVO presets & command gate",
+        "description": "Edit preset names and the command gate. Commands stay OFF until you explicitly enable them.",
+        "data": {
+          "preset_1": "Configuration #1 name",
+          "preset_2": "Configuration #2 name",
+          "preset_3": "Configuration #3 name",
+          "preset_4": "Configuration #4 name",
+          "preset_5": "Configuration #5 name",
+          "preset_6": "Configuration #6 name",
+          "preset_7": "Configuration #7 name",
+          "preset_8": "Configuration #8 name",
+          "enable_commands": "Enable preset commands (SAFETY: leave OFF until approved)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "main_floor_position": { "name": "Main floor position" },
+      "baja_position": { "name": "Baja position" },
+      "main_floor_motor_current": { "name": "Main floor motor current" },
+      "baja_motor_current": { "name": "Baja motor current" },
+      "active_configuration": { "name": "Active configuration" }
+    },
+    "binary_sensor": {
+      "system_ready": { "name": "System ready" },
+      "system_fault": { "name": "System fault" },
+      "estop_active": { "name": "Emergency stop" },
+      "floors_moving": { "name": "Floors moving" },
+      "bad_modbus_comm": { "name": "Bad Modbus comm" },
+      "ready_for_external": { "name": "Ready for external commands" },
+      "main_fault_vfd": { "name": "Main floor VFD fault" },
+      "main_fault_overtravel_up": { "name": "Main floor overtravel up" },
+      "main_fault_overtravel_down": { "name": "Main floor overtravel down" },
+      "main_fault_motor_overload": { "name": "Main floor motor overload" },
+      "main_fault_direction": { "name": "Main floor direction fault" },
+      "main_fault_no_movement": { "name": "Main floor no-movement fault" },
+      "main_fault_off_speed": { "name": "Main floor off-speed fault" },
+      "main_fault_position_ref": { "name": "Main floor position-reference fault" },
+      "main_fault_relative_position": { "name": "Main floor relative-position fault" },
+      "baja_fault_vfd": { "name": "Baja VFD fault" },
+      "baja_fault_overtravel_up": { "name": "Baja overtravel up" },
+      "baja_fault_overtravel_down": { "name": "Baja overtravel down" },
+      "baja_fault_motor_overload": { "name": "Baja motor overload" },
+      "baja_fault_direction": { "name": "Baja direction fault" },
+      "baja_fault_no_movement": { "name": "Baja no-movement fault" },
+      "baja_fault_off_speed": { "name": "Baja off-speed fault" },
+      "baja_fault_position_ref": { "name": "Baja position-reference fault" },
+      "baja_fault_relative_position": { "name": "Baja relative-position fault" },
+      "topplate_fault": { "name": "Top-plate fault {index}" }
+    },
+    "select": {
+      "configuration": { "name": "Configuration request" }
+    }
+  },
+  "exceptions": {
+    "commands_disabled": {
+      "message": "AKVO preset commands are disabled. Enable them in the integration options only after the project map and on-hardware watchdog validation are approved."
+    },
+    "unknown_preset": {
+      "message": "Unknown AKVO preset: {option}."
+    },
+    "request_rejected": {
+      "message": "AKVO refused the preset request: {reason}."
+    }
+  }
+}

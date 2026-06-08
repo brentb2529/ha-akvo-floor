@@ -1,0 +1,11 @@
+{
+  "domain": "akvo",
+  "name": "AKVO Movable Floor",
+  "codeowners": ["@bbensten"],
+  "config_flow": true,
+  "documentation": "https://github.com/bbensten/akvo-floor",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "requirements": ["pymodbus>=3.6.0"],
+  "version": "0.1.0"
+}
