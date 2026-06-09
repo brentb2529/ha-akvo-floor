@@ -1,11 +1,12 @@
 {
   "domain": "akvo",
   "name": "AKVO Movable Floor",
-  "codeowners": ["@bbensten"],
+  "codeowners": ["@brentb2529"],
   "config_flow": true,
-  "documentation": "https://github.com/bbensten/akvo-floor",
+  "documentation": "https://github.com/brentb2529/ha-akvo-floor",
   "integration_type": "device",
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/brentb2529/ha-akvo-floor/issues",
   "requirements": ["pymodbus>=3.6.0"],
-  "version": "0.3.2"
+  "version": "0.3.3"
 }
