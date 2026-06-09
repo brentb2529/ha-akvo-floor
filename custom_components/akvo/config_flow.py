@@ -17,6 +17,8 @@ when options change so a new RegisterMap is built on the next setup.
 from __future__ import annotations
 
 from dataclasses import fields as dataclass_fields
+import ipaddress
+import re
 from typing import Any
 
 import voluptuous as vol
@@ -69,6 +71,51 @@ _REG_SELECTOR = NumberSelector(
 # Selector for preset name strings (plain single-line text).
 _TEXT_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT))
 
+
+# ---------------------------------------------------------------------------
+# Validation helpers
+# ---------------------------------------------------------------------------
+
+# Matches strings that look like dotted-decimal IPs (to route them through
+# ipaddress validation rather than the hostname regex).
+_IP_LIKE_RE = re.compile(r"^\d+(\.\d+){1,3}$")
+
+# Matches plain hostnames and FQDNs.  Strings that look like dotted IPs are
+# NOT tested against this regex — they are handled by ipaddress above.
+_HOSTNAME_RE = re.compile(
+    r"^[a-zA-Z0-9]([a-zA-Z0-9\-\.]*[a-zA-Z0-9])?$"
+)
+
+
+def _is_valid_host(host: str) -> bool:
+    """Return True if *host* looks like a valid hostname or IP address.
+
+    Uses ipaddress.ip_address() for strict IP validation so that out-of-range
+    octets (e.g. 999.x.x.x) are rejected before a Modbus connect is attempted.
+    Strings that look like dotted-decimal addresses are rejected unless they pass
+    ipaddress validation.  Non-IP strings are accepted if they match the hostname
+    regex.
+    """
+    host = host.strip()
+    if not host:
+        return False
+
+    # Try IP validation first.
+    try:
+        ipaddress.ip_address(host)
+        return True
+    except ValueError:
+        pass
+
+    # If it looks like a dotted IP but failed validation, reject it outright.
+    if _IP_LIKE_RE.match(host):
+        return False
+
+    # Fall through to hostname regex.
+    return bool(_HOSTNAME_RE.match(host))
+
+
+# ---------------------------------------------------------------------------
 
 async def _validate_connection(host: str, port: int) -> None:
     transport = ModbusTransport(host, port)
@@ -167,14 +214,17 @@ class AkvoConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             host = user_input[CONF_HOST]
             port = int(user_input[CONF_PORT])
-            self._async_abort_entries_match({CONF_HOST: host, CONF_PORT: port})
-            try:
-                await _validate_connection(host, port)
-            except AkvoConnectionError:
-                errors["base"] = "cannot_connect"
+            if not _is_valid_host(host):
+                errors[CONF_HOST] = "invalid_host"
             else:
-                self._conn = {CONF_HOST: host, CONF_PORT: port}
-                return await self.async_step_presets()
+                self._async_abort_entries_match({CONF_HOST: host, CONF_PORT: port})
+                try:
+                    await _validate_connection(host, port)
+                except AkvoConnectionError:
+                    errors["base"] = "cannot_connect"
+                else:
+                    self._conn = {CONF_HOST: host, CONF_PORT: port}
+                    return await self.async_step_presets()
 
         schema = vol.Schema(
             {
@@ -241,20 +291,23 @@ class AkvoConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             host = user_input[CONF_HOST]
             port = int(user_input[CONF_PORT])
-            try:
-                await _validate_connection(host, port)
-            except AkvoConnectionError:
-                errors["base"] = "cannot_connect"
+            if not _is_valid_host(host):
+                errors[CONF_HOST] = "invalid_host"
             else:
-                return self.async_update_reload_and_abort(
-                    entry,
-                    data={
-                        **entry.data,
-                        CONF_HOST: host,
-                        CONF_PORT: port,
-                    },
-                    title=f"AKVO Movable Floor ({host}:{port})",
-                )
+                try:
+                    await _validate_connection(host, port)
+                except AkvoConnectionError:
+                    errors["base"] = "cannot_connect"
+                else:
+                    return self.async_update_reload_and_abort(
+                        entry,
+                        data={
+                            **entry.data,
+                            CONF_HOST: host,
+                            CONF_PORT: port,
+                        },
+                        title=f"AKVO Movable Floor ({host}:{port})",
+                    )
 
         schema = vol.Schema(
             {

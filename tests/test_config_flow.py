@@ -181,6 +181,39 @@ async def test_config_flow_connection_error_shows_form_again(
 
 
 # ---------------------------------------------------------------------------
+# Config flow — host pre-validation (F5)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "bad_host",
+    [
+        "",
+        "   ",
+        "not a host!!",
+        "host with spaces",
+        "999.999.999.999",
+        "256.0.0.1",
+        "192.168.1.999",
+    ],
+)
+async def test_config_flow_invalid_host_rejected(
+    hass: HomeAssistant, bad_host: str
+) -> None:
+    """Malformed or out-of-range hosts show invalid_host without attempting Modbus connect."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: bad_host, CONF_PORT: _PORT}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "user"
+    assert CONF_HOST in result["errors"]
+    assert result["errors"][CONF_HOST] == "invalid_host"
+
+
+# ---------------------------------------------------------------------------
 # Config flow — duplicate abort
 # ---------------------------------------------------------------------------
 

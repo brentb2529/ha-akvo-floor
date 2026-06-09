@@ -101,7 +101,8 @@
       }
     },
     "error": {
-      "cannot_connect": "Unable to connect to the AKVO Modbus server. Check the IP address and port, and ensure the controller is reachable."
+      "cannot_connect": "Unable to connect to the AKVO Modbus server. Check the IP address and port, and ensure the controller is reachable.",
+      "invalid_host": "Invalid host or IP address. Enter a valid hostname or IPv4 address (e.g. 192.168.1.100)."
     },
     "abort": {
       "already_configured": "This AKVO server is already configured.",

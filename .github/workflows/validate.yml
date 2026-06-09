@@ -1,0 +1,68 @@
+---
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  hassfest:
+    name: Hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+
+  summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [hassfest, hacs]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate report
+        run: |
+          echo "# Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          version=$(grep -o '"version": "[^"]*"' custom_components/akvo/manifest.json | cut -d'"' -f4)
+          domain=$(grep -o '"domain": "[^"]*"' custom_components/akvo/manifest.json | cut -d'"' -f4)
+
+          echo "**Integration:** $domain v$version" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.hassfest.result }}" = "success" ]; then
+            echo "| Hassfest | pass |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Hassfest | fail |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.hacs.result }}" = "success" ]; then
+            echo "| HACS | pass |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| HACS | fail |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.hassfest.result }}" = "success" ] && [ "${{ needs.hacs.result }}" = "success" ]; then
+            echo "Ready for Home Assistant and HACS" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Validation failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
