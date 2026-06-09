@@ -214,6 +214,10 @@ class AkvoClient:
         self._now = time_fn
         self._command_lock = asyncio.Lock()
         self.last_abort_reason: str | None = None
+        # Operator-cancel flag. Set by async_cancel_active_command(); cleared at
+        # the start of every new request. Checked each iteration of the command
+        # loop so cancellation is recognised within one poll cycle.
+        self._cancel_requested: bool = False
 
     async def async_read_state(self) -> AkvoState:
         """Read the status/fault/position/current block and decode it."""
@@ -254,6 +258,30 @@ class AkvoClient:
         """Clear the command register (no reset bit, no config bits)."""
         await self._write(self._map.hr_command, 0)
 
+    async def async_cancel_active_command(self) -> None:
+        """Cancel any in-progress move and clear HR10 immediately.
+
+        SAFETY CONTRACT
+        ---------------
+        * This is the STOP path — it is ALWAYS available and must NEVER be
+          gated behind ``enable_commands`` or the ready-gate. Stopping is
+          always safe; only starting requires those gates.
+        * If no command is active this is a harmless no-op (HR10 was already 0;
+          writing 0 again changes nothing on the PLC).
+        * HR10 bit0 (System Reset) is never set — ``_clear_command`` writes
+          exactly 0 as it always does.
+        * The running command loop checks ``_cancel_requested`` on every
+          iteration and aborts cleanly through the existing ``_safe_clear`` path.
+          Writing HR10=0 here is an *immediate belt-and-suspenders* write that
+          tells the PLC to stop even before the loop sees the flag.
+        """
+        self._cancel_requested = True
+        # Belt-and-suspenders: write HR10=0 immediately so the PLC receives the
+        # stop as fast as possible, regardless of when the command loop next
+        # wakes. _safe_clear will write 0 a second time when the loop aborts —
+        # that is idempotent and safe.
+        await self._safe_clear("operator cancel")
+
     async def async_request_configuration(
         self,
         config: int,
@@ -274,6 +302,7 @@ class AkvoClient:
 
         async with self._command_lock:
             self.last_abort_reason = None
+            self._cancel_requested = False
 
             # (a) Pre-check: refuse unless the PLC says it is ready and clean.
             state = await self.async_read_state()
@@ -326,6 +355,14 @@ class AkvoClient:
 
             if state.floors_moving:
                 motion_started = True
+
+            # (f) Operator-cancel: check before the normal abort path so the
+            # reason string is unambiguous. HR10 was already written to 0 by
+            # async_cancel_active_command(); _safe_clear writes it again (no-op).
+            if self._cancel_requested:
+                self.last_abort_reason = "cancelled by operator"
+                _LOGGER.info("AKVO config #%s cancelled by operator", config)
+                raise AkvoCommandRejected("aborted: cancelled by operator")
 
             # (e) Abort conditions — any one trips an immediate stop.
             abort = self._abort_reason(state, motion_started)

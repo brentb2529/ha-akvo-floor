@@ -16,6 +16,13 @@ through the safety state machine in :mod:`akvo_client`:
 Commands are GATED: if ``enable_commands`` is False (the DEFAULT) every request
 is rejected before touching HR10. Live use requires explicit enablement AND the
 project-specific 725-<project> map + on-hardware watchdog validation + approval.
+
+STOP / CANCEL (selecting "—"):
+  Selecting the none/"—" option cancels any in-progress move by writing HR10=0
+  immediately via :meth:`~akvo_client.AkvoClient.async_cancel_active_command`.
+  This path is ALWAYS AVAILABLE — it is NEVER gated behind ``enable_commands``
+  or the ready-gate. Stopping is always safe. Selecting "—" when nothing is
+  active is a harmless no-op (HR10 is already 0).
 """
 
 from __future__ import annotations
@@ -86,8 +93,11 @@ class AkvoConfigurationSelect(AkvoEntity, SelectEntity):
     async def async_select_option(self, option: str) -> None:
         """Request a configuration preset via the safety state machine."""
         if option == PRESET_NONE:
-            # We never command a "go home"/stop via this path; the PLC and HMI
-            # own motion. Selecting none is a no-op request acknowledgement.
+            # STOP / CANCEL: write HR10=0 immediately to cancel any in-progress
+            # move. This path is ALWAYS available — no enable_commands gate, no
+            # ready-gate. When nothing is active this is a harmless no-op.
+            await self.coordinator.client.async_cancel_active_command()
+            await self.coordinator.async_request_refresh()
             return
 
         if not self._enable_commands:
